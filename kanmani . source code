@@ -1,55 +1,96 @@
-import pandas as pd
+import pandas
+import numpy as np
+import matplotlib.pyplot as plt
+#Seaborn is an open-source Python library built on top of matplotlib. It is used for data visualization and exploratory data
+#analysis. Seaborn works easily with dataframes and the Pandas library. The graphs created can also be customized easily.
+import seaborn as sns
+from sklearn.feature_extraction.text import CountVectorizer
+#used for bag of words and it extract feature from text document
+from sklearn.feature_extraction.text import TfidfTransformer
+#tfid = term frequency is used for
+from sklearn import feature_extraction, linear_model, model_selection, preprocessing
+from sklearn.metrics import accuracy_score
 from sklearn.model_selection import train_test_split
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import accuracy_score, classification_report
+from sklearn.pipeline import Pipeline
+#cross velidation when setting different parameters
+fake = pandas.read_csv(r"/fake news - Sheet1 (1).csv")
+true = pandas.read_csv(r"/true news - Sheet1.csv")
+fake.shape
+true.shape
+fake.head()
+true.head()
+#add flag to track fake and real
+fake['target']='fake'
+true['target']='true'
+fake.head()
+true.head()
+#combine datasets
+data = pandas.concat([fake,true]).reset_index(drop=True)
+data.shape
+ data.head()
+data.tail()
+#shuffle the data
+from sklearn.utils import shuffle
+data = shuffle(data)
+data = data.reset_index(drop=True)
+data.head()
+data.info()
+ import pandas
 
-# Load the dataset (replace 'fake_or_real_news.csv' with your dataset path)
-# For demonstration purposes, let's create a small dummy dataset in memory
-data = {'text': ["This is a real news article about the economy.",
-                  "Breaking: Aliens land on Earth!",
-                  "Scientists discover new treatment for cancer.",
-                  "Shocking video shows politician taking bribe.",
-                  "Local school wins national debate competition."],
-        'label': ['REAL', 'FAKE', 'REAL', 'FAKE', 'REAL']}
-df = pd.DataFrame(data)
+# Assuming your data is in 'fake news - Sheet1.csv' and 'true news - Sheet1.csv'
+fake = pandas.read_csv(r"/fake news - Sheet1 (1).csv")
+true = pandas.read_csv(r"/true news - Sheet1.csv")
 
-X = df['text']
-y = df['label']
+#add flag to track fake and real
+fake['target']='fake'
+true['target']='true'
 
-# Split the data into training and testing sets
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.5, random_state=42)
+#combine datasets
+data = pandas.concat([fake,true]).reset_index(drop=True)
 
-# Initialize TF-IDF Vectorizer
-tfidf_vectorizer = TfidfVectorizer(stop_words='english', max_df=0.7)
+# Now you can use data
+data.isnull().sum()
+#remove date
+if 'date' in data.columns:
+    data.drop(['date'], axis=1, inplace=True)
+else:
+    print("Column 'date' not found in the DataFrame.")
+data.head()
+ #Convert uppercase case
+if 'SUBJECT' in data.columns:
+    data['SUBJECT'] = data['SUBJECT'].apply(lambda x: x.upper())
+else:
+    print("Column 'SUBJECT' not found in the DataFrame.")
+data.head()
+import pandas
+import matplotlib.pyplot as plt  # Import matplotlib.pyplot
 
-# Fit and transform the training data, and transform the testing data
-tfidf_train = tfidf_vectorizer.fit_transform(X_train)
-tfidf_test = tfidf_vectorizer.transform(X_test)
+# ... (Rest of the code remains the same)
 
-# Initialize and train a Logistic Regression model
-model = LogisticRegression(solver='liblinear')
-model.fit(tfidf_train, y_train)
+#how many fake and real
+print(data.groupby(['target'])['SUBJECT'].count()) # Changed 'text' to 'SUBJECT'
+data.groupby(['target'])['SUBJECT'].count().plot(kind="bar") # Changed 'text' to 'SUBJECT'
+plt.show()
+ # Most frequent words counter
+import nltk # Import the nltk library
+from nltk import tokenize
+from nltk import FreqDist # Import FreqDist
+import seaborn as sns # Import seaborn as sns
+token_space = tokenize.WhitespaceTokenizer()
 
-# Make predictions on the test set
-y_pred = model.predict(tfidf_test)
-
-# Evaluate the model
-accuracy = accuracy_score(y_test, y_pred)
-print(f"Accuracy: {accuracy:.2f}")
-print("\nClassification Report:")
-print(classification_report(y_test, y_pred))
-
-# Example of predicting on new text
-def predict_fake_news(text):
-    text_tfidf = tfidf_vectorizer.transform([text])
-    prediction = model.predict(text_tfidf)[0]
-    return prediction
-
-new_text_1 = "Reports indicate a significant increase in unemployment rates."
-prediction_1 = predict_fake_news(new_text_1)
-print(f"\nPrediction for '{new_text_1}': {prediction_1}")
-
-new_text_2 = "Secret government agency confirms existence of mermaids."
-prediction_2 = predict_fake_news(new_text_2)
-print(f"Prediction for '{new_text_2}': {prediction_2}")
+def counter(text, column_text, quantity):
+    all_words = ' '.join([text for text in text[column_text]])
+    token_phrase = token_space.tokenize(all_words)
+    frequency = nltk.FreqDist(token_phrase) # Use FreqDist without nltk prefix
+    df_frequency = pandas.DataFrame({"Word": list(frequency.keys()),
+                                     "Frequency": list(frequency.values())})
+    df_frequency = df_frequency.nlargest(columns="Frequency", n=quantity)
+    plt.figure(figsize=(12, 8))
+    ax = sns.barplot(data=df_frequency, x="Word", y="Frequency", color='blue') # Now sns is defined
+    ax.set(ylabel="Count")
+    plt.xticks(rotation='vertical')
+    plt.show()
+#most frequent words in fake news
+counter(data[data["target"] == "fake"], "SUBJECT", 20)
+# Most frequent words in real news
+counter(data[data["target"] == "true"], "SUBJECT", 20)
